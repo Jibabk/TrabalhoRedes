@@ -1,5 +1,19 @@
 from tkinter import *
 from tkinter import Tk, ttk
+from tkinter import messagebox
+
+usuarios = ['joao123', '12345']
+
+def verifica_senha():
+    user = e_user.get()
+    senha = e_pw.get()
+
+    if user == 'admin' and senha == 'admin':
+        messagebox.showinfo('Login', 'Seja bem-vindo')
+    elif usuarios[0] == user and usuarios[1] == senha:
+        messagebox.showinfo('Login', 'Seja bem-vindo')
+    else:
+        messagebox.showwarning('Erro', 'Verifique o nome e sennha')
 
 #cores
 c0 = "#f0f3f5" # preto
@@ -40,8 +54,9 @@ l_pw.place(x=15, y=95)
 e_pw = Entry(frame_baixo, width=25, justify='left', font=("", 15), highlightthickness=1, relief='solid')
 e_pw.place(x=14, y=130)
 
-b_login = Button(frame_baixo, text='Entrar', width=40, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
+b_login = Button(frame_baixo, command=verifica_senha, text='Entrar', width=40, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
 b_login.place(x=15, y=180)
+
 
 
 
