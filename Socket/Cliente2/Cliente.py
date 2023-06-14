@@ -29,8 +29,8 @@ def main():
     SocketSender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        portSender = int(input('PortSender:'))
-        SocketSender.bind(('localhost',portSender))
+        #portSender = int(input('PortSender:'))
+        SocketSender.bind(('localhost',0))
         SocketSender.listen(1)
     except:
         print('não foi possível iniciar o servidor-cliente')
@@ -44,7 +44,7 @@ def main():
     print('\nConectado ao servidor')
 
     thread1 = threading.Thread(target=receiveMenssages,args=[Socketclient])
-    thread2 = threading.Thread(target=sendMessages, args=[Socketclient,portSender])
+    thread2 = threading.Thread(target=sendMessages, args=[Socketclient,SocketSender.getsockname()[1]])
     thread3 = threading.Thread(target=servidorSender, args=[SocketSender])
     thread1.start()
     thread2.start()
@@ -83,25 +83,25 @@ def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         socketReciver.connect((ip,int(port)))
+        namefile = input('\nArquivo:')
+        socketReciver.send(namefile.encode())
+        while True:
+            try:
+                with open(namefile,'wb') as file:
+                    while True:
+                        data = socketReciver.recv(1000000)
+                        if not data:
+                            break
+                        file.write(data)
+            except:
+                print('\nNão foi possível se manter conectado no Servidor')
+                print('Pressione <Enter> Para continuar')
+                socketReciver.close()
+                break
     except:
-        print('não possivel se conectar ao servidor cliente')
+        print('não foi possivel se conectar ao servidor cliente')
     
-    namefile = input('\nArquivo:')
-    socketReciver.send(namefile.encode())
 
-    while True:
-        try:
-            with open(namefile,'wb') as file:
-                while True:
-                    data = socketReciver.recv(1000000)
-                    if not data:
-                        break
-                    file.write(data)
-        except:
-            print('\nNão foi possível se manter conectado no Servidor')
-            print('Pressione <Enter> Para continuar')
-            socketReciver.close()
-            break
     socketReciver.close()
     return
         
@@ -156,15 +156,15 @@ def servidorSender(Socketservidor):
 
 def messagesTreatment(client):
     while True:
-        # try: 
+        try: 
             namefile = client.recv(1024).decode()
             with open(namefile,'rb') as file:
                 for data in file.readlines():
                     client.send(data)
 
-        # except:
-        #     print("algo deu errado messagesTreatment")
-        #     break
+        except:
+            print("algo deu errado messagesTreatment")
+            break
 
 
 main()

@@ -37,14 +37,14 @@ def messagesTreatment(client):
             msg = msg_bytes.decode()
             print(msg)
             listArgs = msg.split(',')
-            print("aaaaaaaaaaa")
+            
             print(listArgs)
             if listArgs[0]=='<sender>':
-                print("bbbbbbbbbbbb")
+                
                 bancodados[listArgs[1]] = listArgs[2:]
                 print(bancodados)
             elif listArgs[0] == '<reciver>':
-                print('cccccccccc')
+                
                 print(bancodados[listArgs[1]])
                 client.send(f"{bancodados[listArgs[1]][0]},{bancodados[listArgs[1]][1]}".encode())
             else:
