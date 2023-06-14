@@ -21,6 +21,7 @@ import socket
 import threading
 import os
 import datetime
+import hashlib
         
 
 def main():
@@ -83,44 +84,38 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
 
 def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    flag = False
     try:
         socketReciver.connect((ip,int(port)))
-        if not sincronizar(socketReciver):
-            flag = True
-            return
+        if sincronizar(socketReciver):
+            os.makedirs('recive',exist_ok=True)
+            with socketReciver,socketReciver.makefile('rb') as clientfile: #download em uma pasta local
+                while True:
+                    raw = clientfile.readline()
+                    if not raw: break # no more files, server closed connection.
 
+                    filename = raw.strip().decode()
+                    length = int(clientfile.readline())
 
-        os.makedirs('recive',exist_ok=True)
-        with socketReciver,socketReciver.makefile('rb') as clientfile: #download em uma pasta local
-            while True:
-                raw = clientfile.readline()
-                if not raw: break # no more files, server closed connection.
+                    print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
 
-                filename = raw.strip().decode()
-                length = int(clientfile.readline())
+                    path = os.path.join('recive',filename)
+                    os.makedirs(os.path.dirname(path),exist_ok=True)
 
-                print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
-
-                path = os.path.join('recive',filename)
-                os.makedirs(os.path.dirname(path),exist_ok=True)
-
-                # Read the data in chunks so it can handle large files.
-                with open(path,'wb') as f:
-                    while length:
-                        chunk = min(length,1000000)
-                        if not flag:
+                    # Read the data in chunks so it can handle large files.
+                    with open(path,'wb') as f:
+                        while length:
+                            chunk = min(length,1000000)
                             data = clientfile.read(chunk)
-                        if not data: break
-                        f.write(data)
-                        length -= len(data)
-                    else: # only runs if while doesn't break and length==0
-                        print('Complete')
-                        continue
+                            if not data: break
+                            f.write(data)
+                            length -= len(data)
+                        else: # only runs if while doesn't break and length==0
+                            print('Complete')
+                            continue
 
-                # socket was closed early.
-                print('Incomplete')
-                break 
+                    # socket was closed early.
+                    print('Incomplete')
+                    break 
     except:
         print('não foi possivel se conectar ao servidor cliente')
     
@@ -158,6 +153,8 @@ def sendHashlist(client):
                 # create a file path
                 #print(relpath)
                 # get creation time on windows
+                hash = sha1sum(filename)
+
                 try:
                     # file modification timestamp of a file
                     m_time = os.path.getmtime(path)
@@ -166,8 +163,9 @@ def sendHashlist(client):
                     # file creation timestamp in float
                     c_time = os.path.getctime(path)
                     # convert creation timestamp into DateTime object
-                    dt_c = datetime.datetime.fromtimestamp(c_time)                            
-                    client.sendall(f"{relpath},{dt_c},{dt_m}".encode())
+                    dt_c = datetime.datetime.fromtimestamp(c_time)        
+
+                    client.sendall(f"{relpath},{dt_c},{dt_m},{hash}".encode())
                 except:
                     continue
         
@@ -175,7 +173,12 @@ def sendHashlist(client):
         break
     
     return
-        
+
+def sha1sum(filename):
+    with open(filename, 'rb', buffering=0) as f:
+        data = f.read()
+        return hashlib.sha1(data).hexdigest()
+           
 def servidorSender(Socketservidor):
     while True:
         try:
