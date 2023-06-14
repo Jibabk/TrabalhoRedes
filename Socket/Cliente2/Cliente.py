@@ -20,6 +20,7 @@
 import socket
 import threading
 import os
+import datetime
         
 
 def main():
@@ -98,7 +99,7 @@ def startReciver(ip,port):
 
                 filename = raw.strip().decode()
                 length = int(clientfile.readline())
-                
+
                 print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
 
                 path = os.path.join('recive',filename)
@@ -158,9 +159,15 @@ def sendHashlist(client):
                 #print(relpath)
                 # get creation time on windows
                 try:
-                    c_timestamp = os.path.getctime(path)
-                    m_timestamp = os.path.getmtime(path)              
-                    client.sendall(f"{relpath},{c_timestamp},{m_timestamp}".encode())
+                    # file modification timestamp of a file
+                    m_time = os.path.getmtime(path)
+                    # convert timestamp into DateTime object
+                    dt_m = datetime.datetime.fromtimestamp(m_time)     
+                    # file creation timestamp in float
+                    c_time = os.path.getctime(path)
+                    # convert creation timestamp into DateTime object
+                    dt_c = datetime.datetime.fromtimestamp(c_time)                            
+                    client.sendall(f"{relpath},{dt_c},{dt_m}".encode())
                 except:
                     continue
         
@@ -204,7 +211,7 @@ def messagesTreatment(client):
                     while True:
                         data = f.read(1000000)
                         if not data: break
-                        client.sendall(data)                    
+                        client.sendall(data)           
 
         break
         
