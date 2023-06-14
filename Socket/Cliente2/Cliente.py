@@ -82,16 +82,23 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
 
 def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    os.makedirs('recive',exist_ok=True)
+    flag = False
     try:
         socketReciver.connect((ip,int(port)))
-        with socketReciver,socketReciver.makefile('rb') as clientfile:
+        if not sincronizar(socketReciver):
+            flag = True
+            return
+
+
+        os.makedirs('recive',exist_ok=True)
+        with socketReciver,socketReciver.makefile('rb') as clientfile: #download em uma pasta local
             while True:
                 raw = clientfile.readline()
                 if not raw: break # no more files, server closed connection.
 
                 filename = raw.strip().decode()
                 length = int(clientfile.readline())
+                
                 print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
 
                 path = os.path.join('recive',filename)
@@ -101,7 +108,8 @@ def startReciver(ip,port):
                 with open(path,'wb') as f:
                     while length:
                         chunk = min(length,1000000)
-                        data = clientfile.read(chunk)
+                        if not flag:
+                            data = clientfile.read(chunk)
                         if not data: break
                         f.write(data)
                         length -= len(data)
@@ -119,6 +127,47 @@ def startReciver(ip,port):
     socketReciver.close()
     return
         
+def sincronizar(socketReciver):
+    listaHash = []
+    while True:
+        msg = socketReciver.recv(1024).decode()
+        if msg == "<END>":
+            break
+        listaHash.append(msg.split(','))
+    
+    print('\nimprimindo listahash')
+    for hash in listaHash:
+        print(hash)
+
+    choice = input("\ndeseja importar o arquivo?(sim)(não)\n")
+    if choice == "sim":
+        return True
+    if choice == "não":
+        return False
+    print('Algo deu errado na sincronização')
+    return
+
+def sendHashlist(client):
+    while True:
+        for path,dirs,files in os.walk('send'):
+            for file in files:
+                filename = os.path.join(path,file)
+                relpath = os.path.relpath(filename,'send')
+                filesize = os.path.getsize(filename)
+                # create a file path
+                #print(relpath)
+                # get creation time on windows
+                try:
+                    c_timestamp = os.path.getctime(path)
+                    m_timestamp = os.path.getmtime(path)              
+                    client.sendall(f"{relpath},{c_timestamp},{m_timestamp}".encode())
+                except:
+                    continue
+        
+        client.send("<END>".encode())
+        break
+    
+    return
         
 def servidorSender(Socketservidor):
     while True:
@@ -131,6 +180,8 @@ def servidorSender(Socketservidor):
             # Não é isso que servidores de verdade fazem, é só um exemplo
             print(f"Servidor: desligando thread de escuta")
             break
+
+        sendHashlist(client)
         
         thread = threading.Thread(target=messagesTreatment, args=[client])
         thread.start()
@@ -154,7 +205,7 @@ def messagesTreatment(client):
                         data = f.read(1000000)
                         if not data: break
                         client.sendall(data)                    
-        print('Done.')
+
         break
         
         # try: 
