@@ -19,6 +19,7 @@
 
 import socket
 import threading
+import os
         
 
 def main():
@@ -81,23 +82,36 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
 
 def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    os.makedirs('recive',exist_ok=True)
     try:
         socketReciver.connect((ip,int(port)))
-        namefile = input('\nArquivo:')
-        socketReciver.send(namefile.encode())
-        while True:
-            try:
-                with open(namefile,'wb') as file:
-                    while True:
-                        data = socketReciver.recv(1000000)
-                        if not data:
-                            break
-                        file.write(data)
-            except:
-                print('\nNão foi possível se manter conectado no Servidor')
-                print('Pressione <Enter> Para continuar')
-                socketReciver.close()
-                break
+        with socketReciver,socketReciver.makefile('rb') as clientfile:
+            while True:
+                raw = clientfile.readline()
+                if not raw: break # no more files, server closed connection.
+
+                filename = raw.strip().decode()
+                length = int(clientfile.readline())
+                print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
+
+                path = os.path.join('recive',filename)
+                os.makedirs(os.path.dirname(path),exist_ok=True)
+
+                # Read the data in chunks so it can handle large files.
+                with open(path,'wb') as f:
+                    while length:
+                        chunk = min(length,1000000)
+                        data = clientfile.read(chunk)
+                        if not data: break
+                        f.write(data)
+                        length -= len(data)
+                    else: # only runs if while doesn't break and length==0
+                        print('Complete')
+                        continue
+
+                # socket was closed early.
+                print('Incomplete')
+                break 
     except:
         print('não foi possivel se conectar ao servidor cliente')
     
@@ -105,39 +119,6 @@ def startReciver(ip,port):
     socketReciver.close()
     return
         
-
-
-# def sendMenssagesClient(Socketclient,ip, port):
-#     try:
-#         Socketclient.close()
-#         Socketclient.connect((ip,port))
-#         print('Conectado ao cliente!')
-#         namefile = input('arquivo:')
-#         Socketclient.send(namefile.encode())
-#         Socketclient.connect(('localhost',7777))
-#     except:
-#         print("algo deu errado sendMessagesClient")
-#         return
-    
-# def receiveMenssagesClient(Socketservidor):
-#     while True:
-#         try:
-#             namefile = input('Escolha o nome como salvar o arquivo')
-#             with open(namefile,'wb') as file:
-#                 while True:
-#                     data = Socketservidor.recv(1000000)
-#                     if not data:
-#                         break
-#                     file.write(data)
-
-#         except:
-#             print('\nNão foi possível se manter conectado no Servidor')
-#             print('Pressione <Enter> Para continuar')
-#             Socketservidor.close()
-#             break
-
-
-
         
 def servidorSender(Socketservidor):
     while True:
@@ -156,15 +137,37 @@ def servidorSender(Socketservidor):
 
 def messagesTreatment(client):
     while True:
-        try: 
-            namefile = client.recv(1024).decode()
-            with open(namefile,'rb') as file:
-                for data in file.readlines():
-                    client.send(data)
+        for path,dirs,files in os.walk('send'):
+            for file in files:
+                filename = os.path.join(path,file)
+                relpath = os.path.relpath(filename,'send')
+                filesize = os.path.getsize(filename)
 
-        except:
-            print("algo deu errado messagesTreatment")
-            break
+                #print(f'Sending {relpath}')
+
+                with open(filename,'rb') as f:
+                    client.sendall(relpath.encode() + b'\n')
+                    client.sendall(str(filesize).encode() + b'\n')
+
+                    # Send the file in chunks so large files can be handled.
+                    while True:
+                        data = f.read(1000000)
+                        if not data: break
+                        client.sendall(data)                    
+        print('Done.')
+        break
+        
+        # try: 
+        #     namefile = client.recv(1024).decode()
+        #     with open(namefile,'rb') as file:
+        #         for data in file.readlines():
+        #             client.send(data)
+
+        # except:
+        #     print("algo deu errado messagesTreatment")
+        #     break
+
+        
 
 
 main()
