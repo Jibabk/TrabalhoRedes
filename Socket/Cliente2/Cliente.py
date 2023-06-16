@@ -18,6 +18,7 @@
 # print(f'{namefile} recebido!\n')
 
 import socket
+import time
 import threading
 import os
 import datetime
@@ -57,17 +58,17 @@ def main():
 
 def receiveMenssages(Socketclient):
     while True:
-        try:
+        # try:
             msg = Socketclient.recv(2048).decode()
             #print('\n' + msg)
 
             listargs = msg.split(',')
             startReciver(listargs[0],listargs[1])
-        except:
-            print('\nNão foi possível se manter conectado no Servidor')
-            print('Pressione <Enter> Para continuar')
-            Socketclient.close()
-            break
+        # except:
+        #     print('\nNão foi possível se manter conectado no Servidor')
+        #     print('Pressione <Enter> Para continuar')
+        #     Socketclient.close()
+        #     break
 
 
 def sendMessages(Socketclient,port,key='',ip='localhost'):
@@ -84,6 +85,7 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
 
 def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     try:
         socketReciver.connect((ip,int(port)))
         if sincronizar(socketReciver):
@@ -94,6 +96,9 @@ def startReciver(ip,port):
                     if not raw: break # no more files, server closed connection.
 
                     filename = raw.strip().decode()
+                    if filename.split(" ")[0] == "<CRIPT>":
+                        criptSender = filename.split(" ")[1]
+                        filename = filename.split(" ")[2]
                     length = int(clientfile.readline())
 
                     print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
@@ -111,6 +116,12 @@ def startReciver(ip,port):
                             length -= len(data)
                         else: # only runs if while doesn't break and length==0
                             print('Complete')
+                            criptRecv= sha1sum("recive/ZipArquivo.zip")
+                            print(f"CriptRecv: {criptRecv}")
+                            print(f"CriptSender: {criptSender}")
+                            if criptRecv != criptSender:
+                                print ("ARQUIVO CORROMPIDO!!!")
+                        
                             continue
 
                     # socket was closed early.
@@ -153,7 +164,6 @@ def sendHashlist(client):
                 # create a file path
                 #print(relpath)
                 # get creation time on windows
-                hash = sha1sum(filename)
 
                 try:
                     # file modification timestamp of a file
@@ -165,7 +175,7 @@ def sendHashlist(client):
                     # convert creation timestamp into DateTime object
                     dt_c = datetime.datetime.fromtimestamp(c_time)        
 
-                    client.sendall(f"{relpath},{dt_c},{dt_m},{hash}".encode())
+                    client.sendall(f"{relpath},{dt_c},{dt_m}".encode())
                 except:
                     continue
         
@@ -198,6 +208,9 @@ def servidorSender(Socketservidor):
 
 def messagesTreatment(client):
     shutil.make_archive('ZipArquivo', 'zip', 'send')
+    criptSender = sha1sum('ZipArquivo.zip')
+    print(f"CriptSender: {criptSender}")
+    client.send(f"<CRIPT> {criptSender} ".encode())
     os.makedirs('sinc',exist_ok=True)
     try:
         shutil.move("ZipArquivo.zip", "sinc")
@@ -221,12 +234,12 @@ def messagesTreatment(client):
 
                     # Send the file in chunks so large files can be handled.
                     while True:
-                        data = f.read(1000000)
+                        data = f.read()
                         if not data: break
                         client.sendall(data)           
 
         break
-
+        
 
 
 
