@@ -34,7 +34,6 @@ def main():
     SocketSender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        #portSender = int(input('PortSender:'))
         SocketSender.bind(('localhost',0))
         SocketSender.listen(1)
     except:
@@ -71,7 +70,7 @@ def receiveMenssages(Socketclient):
         #     break
 
 
-def sendMessages(Socketclient,port,key='',ip='localhost'):
+def sendMessages(Socketclient,port,ip='localhost',key=''):
     try:
         sender = input("\nDeseja enviar aquivos?(sim)(não)\n")      #solução temporária até receber o frontend
         key = input("\nkey:")
@@ -143,10 +142,14 @@ def sincronizar(socketReciver):
         listaHash.append(msg.split(','))
     
     print('\nimprimindo listahash')
-    for hash in listaHash:
-        print(hash)
+    with open('SenderTime.txt', 'w') as arq:
+        for hash in listaHash:
+            print(hash)        
 
     choice = input("\ndeseja importar o arquivo?(sim)(não)\n")
+    with open('SenderTime.txt', 'w') as arq:
+        for hash in listaHash:
+            arq.write(','.join(map(str, hash))+'\n')
     if choice == "sim":
         return True
     if choice == "não":
