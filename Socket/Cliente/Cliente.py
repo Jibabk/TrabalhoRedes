@@ -22,7 +22,6 @@ import threading
 import os
 import datetime
 import hashlib
-        
 
 def main():
 
@@ -124,16 +123,18 @@ def startReciver(ip,port):
     return
         
 def sincronizar(socketReciver):
-    listaHash = []
+    listaArquivos = []
     while True:
         msg = socketReciver.recv(1024).decode()
         if msg == "<END>":
             break
-        listaHash.append(msg.split(','))
+        listaArquivos.append(msg.split(','))
     
     print('\nimprimindo listahash')
-    for hash in listaHash:
-        print(hash)
+    for hash in listaArquivos:
+        with open('variables.txt', 'w') as f:
+            for i in hash:
+                f.write(i)
 
     choice = input("\ndeseja importar o arquivo?(sim)(não)\n")
     if choice == "sim":
