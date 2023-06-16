@@ -21,6 +21,7 @@ import socket
 import threading
 import os
 import datetime
+import shutil
 import hashlib
         
 
@@ -79,7 +80,6 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
             Socketclient.send(f"<reciver>,{key}".encode())
     except:
         return
-
 
 
 def startReciver(ip,port):
@@ -197,12 +197,21 @@ def servidorSender(Socketservidor):
         thread.start()
 
 def messagesTreatment(client):
+    shutil.make_archive('ZipArquivo', 'zip', 'send')
+    os.makedirs('sinc',exist_ok=True)
+    try:
+        shutil.move("ZipArquivo.zip", "sinc")
+    except:
+        os.remove("sinc/ZipArquivo.zip")
+        shutil.move("ZipArquivo.zip", "sinc")
     while True:
-        for path,dirs,files in os.walk('send'):
+        for path,dirs,files in os.walk('sinc'):
             for file in files:
                 filename = os.path.join(path,file)
-                relpath = os.path.relpath(filename,'send')
+                relpath = os.path.relpath(filename,'sinc')
                 filesize = os.path.getsize(filename)
+
+                #shutil.make_archive('sendZip', 'zip', 'send')
 
                 #print(f'Sending {relpath}')
 
@@ -217,18 +226,8 @@ def messagesTreatment(client):
                         client.sendall(data)           
 
         break
-        
-        # try: 
-        #     namefile = client.recv(1024).decode()
-        #     with open(namefile,'rb') as file:
-        #         for data in file.readlines():
-        #             client.send(data)
 
-        # except:
-        #     print("algo deu errado messagesTreatment")
-        #     break
 
-        
 
 
 main()
