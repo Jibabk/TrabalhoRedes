@@ -57,10 +57,10 @@ def main():
         l_key.place(x=15, y=100)
         e_key = Entry(send, width=25, justify='left', font=("", 15), highlightthickness=1, relief='solid')
         e_key.place(x=14, y=150)
-        b_back = Button(send, command= lambda: back(send), text='Voltar', width=20, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE) 
+        b_back = Button(send, command= lambda: back(send), text='Voltar', width=20, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
+        b_back.place(x=40, y=180)
         b_send = Button(send, command= lambda: sent(e_key.get()), text='Enviar', width=20, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
-        b_send.place(x=40, y=180)
-        b_back.place(x=40, y=240)
+        b_send.place(x=40, y=240)
 
     def receive():
         mains.destroy()
@@ -80,9 +80,9 @@ def main():
             c_files.insert(END, files)
         c_files.place(x=15, y=170)
         b_back = Button(receive, command= lambda: back(receive), text='Voltar', width=20, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
+        b_back.place(x=270, y=250)
         b_receive = Button(receive, command= lambda: received(e_key.get()), text='Receber', width=20, height=2, font=('Ivy 8 bold'), relief=RAISED, overrelief=RIDGE)
-        b_receive.place(x=270, y=250)
-        b_back.place(x=270, y=310)
+        b_receive.place(x=270, y=310)
 
     mains.title("Main")
     mains.geometry("450x400")

@@ -27,8 +27,7 @@ import hashlib
 import sincroniza
 
 
-def main():
-
+def main(choice,key):
 
     Socketclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
@@ -49,7 +48,7 @@ def main():
     print('\nConectado ao servidor')
 
     thread1 = threading.Thread(target=receiveMenssages,args=[Socketclient])
-    thread2 = threading.Thread(target=sendMessages, args=[Socketclient,SocketSender.getsockname()[1]])
+    thread2 = threading.Thread(target=sendMessages, args=[Socketclient,SocketSender.getsockname()[1],choice,key])
     thread3 = threading.Thread(target=servidorSender, args=[SocketSender])
     thread1.start()
     thread2.start()
@@ -71,13 +70,12 @@ def receiveMenssages(Socketclient):
         #     break
 
 
-def sendMessages(Socketclient,port,ip='localhost',key=''):
+def sendMessages(Socketclient,port,choice,key,ip='localhost'):
     try:
-        sender = input("\nDeseja enviar aquivos?(sim)(não)\n")      #solução temporária até receber o frontend
-        key = input("\nkey:")
-        if sender.lower() =='sim':
+        print(key)
+        if choice =='send':
             Socketclient.send(f"<sender>,{key},{ip},{port}".encode())
-        else:
+        elif choice =='receive':
             Socketclient.send(f"<reciver>,{key}".encode())
     except:
         return
@@ -152,16 +150,10 @@ def sincronizar(socketReciver):
         for hash in listaHash:
             print(hash)        
 
-    choice = input("\ndeseja importar o arquivo?(sim)(não)\n")
     with open('SenderTime.txt', 'w') as arq:
         for hash in listaHash:
             arq.write(','.join(map(str, hash))+'\n')
-    if choice == "sim":
-        return True
-    if choice == "não":
-        return False
-    print('Algo deu errado na sincronização')
-    return
+    return True
 
 def sendHashlist(client):
     while True:
@@ -249,7 +241,4 @@ def messagesTreatment(client):
 
         break
         
-
-
-
-main()
+main(None, None)
