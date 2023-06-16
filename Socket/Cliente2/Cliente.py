@@ -24,7 +24,8 @@ import os
 import datetime
 import shutil
 import hashlib
-        
+import sincroniza
+
 
 def main():
 
@@ -120,6 +121,10 @@ def startReciver(ip,port):
                             print(f"CriptSender: {criptSender}")
                             if criptRecv != criptSender:
                                 print ("ARQUIVO CORROMPIDO!!!")
+                            else:
+                                print("Realizando a sincronização")
+                                sincroniza.main()
+                                
                         
                             continue
 
@@ -130,6 +135,7 @@ def startReciver(ip,port):
         print('não foi possivel se conectar ao servidor cliente')
     
 
+    
     socketReciver.close()
     return
         
