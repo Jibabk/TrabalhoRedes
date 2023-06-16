@@ -18,10 +18,14 @@
 # print(f'{namefile} recebido!\n')
 
 import socket
+import time
 import threading
 import os
 import datetime
+import shutil
 import hashlib
+import sincroniza
+
 
 def main():
 
@@ -31,7 +35,6 @@ def main():
     SocketSender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        #portSender = int(input('PortSender:'))
         SocketSender.bind(('localhost',0))
         SocketSender.listen(1)
     except:
@@ -55,20 +58,20 @@ def main():
 
 def receiveMenssages(Socketclient):
     while True:
-        try:
+        # try:
             msg = Socketclient.recv(2048).decode()
             #print('\n' + msg)
 
             listargs = msg.split(',')
             startReciver(listargs[0],listargs[1])
-        except:
-            print('\nNão foi possível se manter conectado no Servidor')
-            print('Pressione <Enter> Para continuar')
-            Socketclient.close()
-            break
+        # except:
+        #     print('\nNão foi possível se manter conectado no Servidor')
+        #     print('Pressione <Enter> Para continuar')
+        #     Socketclient.close()
+        #     break
 
 
-def sendMessages(Socketclient,port,key='',ip='localhost'):
+def sendMessages(Socketclient,port,ip='localhost',key=''):
     try:
         sender = input("\nDeseja enviar aquivos?(sim)(não)\n")      #solução temporária até receber o frontend
         key = input("\nkey:")
@@ -80,9 +83,9 @@ def sendMessages(Socketclient,port,key='',ip='localhost'):
         return
 
 
-
 def startReciver(ip,port):
     socketReciver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     try:
         socketReciver.connect((ip,int(port)))
         if sincronizar(socketReciver):
@@ -93,6 +96,9 @@ def startReciver(ip,port):
                     if not raw: break # no more files, server closed connection.
 
                     filename = raw.strip().decode()
+                    if filename.split(" ")[0] == "<CRIPT>":
+                        criptSender = filename.split(" ")[1]
+                        filename = filename.split(" ")[2]
                     length = int(clientfile.readline())
 
                     print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
@@ -110,6 +116,16 @@ def startReciver(ip,port):
                             length -= len(data)
                         else: # only runs if while doesn't break and length==0
                             print('Complete')
+                            criptRecv= sha1sum("recive/ZipArquivo.zip")
+                            print(f"CriptRecv: {criptRecv}")
+                            print(f"CriptSender: {criptSender}")
+                            if criptRecv != criptSender:
+                                print ("ARQUIVO CORROMPIDO!!!")
+                            else:
+                                print("Realizando a sincronização")
+                                sincroniza.main()
+                                
+                        
                             continue
 
                     # socket was closed early.
@@ -119,6 +135,7 @@ def startReciver(ip,port):
         print('não foi possivel se conectar ao servidor cliente')
     
 
+    
     socketReciver.close()
     return
         
@@ -131,12 +148,14 @@ def sincronizar(socketReciver):
         listaArquivos.append(msg.split(','))
     
     print('\nimprimindo listahash')
-    for hash in listaArquivos:
-        with open('variables.txt', 'w') as f:
-            for i in hash:
-                f.write(i)
+    with open('SenderTime.txt', 'w') as arq:
+        for hash in listaHash:
+            print(hash)        
 
     choice = input("\ndeseja importar o arquivo?(sim)(não)\n")
+    with open('SenderTime.txt', 'w') as arq:
+        for hash in listaHash:
+            arq.write(','.join(map(str, hash))+'\n')
     if choice == "sim":
         return True
     if choice == "não":
@@ -154,7 +173,6 @@ def sendHashlist(client):
                 # create a file path
                 #print(relpath)
                 # get creation time on windows
-                hash = sha1sum(filename)
 
                 try:
                     # file modification timestamp of a file
@@ -166,7 +184,7 @@ def sendHashlist(client):
                     # convert creation timestamp into DateTime object
                     dt_c = datetime.datetime.fromtimestamp(c_time)        
 
-                    client.sendall(f"{relpath},{dt_c},{dt_m},{hash}".encode())
+                    client.sendall(f"{relpath},{dt_c},{dt_m}".encode())
                 except:
                     continue
         
@@ -198,12 +216,24 @@ def servidorSender(Socketservidor):
         thread.start()
 
 def messagesTreatment(client):
+    shutil.make_archive('ZipArquivo', 'zip', 'send')
+    criptSender = sha1sum('ZipArquivo.zip')
+    print(f"CriptSender: {criptSender}")
+    client.send(f"<CRIPT> {criptSender} ".encode())
+    os.makedirs('sinc',exist_ok=True)
+    try:
+        shutil.move("ZipArquivo.zip", "sinc")
+    except:
+        os.remove("sinc/ZipArquivo.zip")
+        shutil.move("ZipArquivo.zip", "sinc")
     while True:
-        for path,dirs,files in os.walk('send'):
+        for path,dirs,files in os.walk('sinc'):
             for file in files:
                 filename = os.path.join(path,file)
-                relpath = os.path.relpath(filename,'send')
+                relpath = os.path.relpath(filename,'sinc')
                 filesize = os.path.getsize(filename)
+
+                #shutil.make_archive('sendZip', 'zip', 'send')
 
                 #print(f'Sending {relpath}')
 
@@ -213,23 +243,13 @@ def messagesTreatment(client):
 
                     # Send the file in chunks so large files can be handled.
                     while True:
-                        data = f.read(1000000)
+                        data = f.read()
                         if not data: break
                         client.sendall(data)           
 
         break
         
-        # try: 
-        #     namefile = client.recv(1024).decode()
-        #     with open(namefile,'rb') as file:
-        #         for data in file.readlines():
-        #             client.send(data)
 
-        # except:
-        #     print("algo deu errado messagesTreatment")
-        #     break
-
-        
 
 
 main()
