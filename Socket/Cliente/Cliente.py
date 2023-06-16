@@ -140,12 +140,12 @@ def startReciver(ip,port):
     return
         
 def sincronizar(socketReciver):
-    listaArquivos = []
+    listaHash = []
     while True:
         msg = socketReciver.recv(1024).decode()
         if msg == "<END>":
             break
-        listaArquivos.append(msg.split(','))
+        listaHash.append(msg.split(','))
     
     print('\nimprimindo listahash')
     with open('SenderTime.txt', 'w') as arq:
